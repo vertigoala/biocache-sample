@@ -55,7 +55,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
     networks:
       - traefik-net
 #      - backend
@@ -111,6 +111,10 @@ services:
 
   cassandradb:
     image: cassandra:3.11.4
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
     configs:
       - source: cassandra-schema
         target: /docker-entrypoint-initdb.d/cassandra3-schema.cql
