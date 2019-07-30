@@ -1,0 +1,141 @@
+version: "3.7"
+
+services:
+
+  traefik:
+    image: traefik:latest
+    ports:
+      - 80:80
+      - 8080:8080
+    command: traefik --docker --docker.swarmMode --docker.watch --docker.network=traefik-net --api 
+    #  --docker.trace --accessLog -l DEBUG 
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - traefik-net
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+  commonui-sample:
+    image: vertigoala/commonui-sample:latest
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      labels:
+        traefik.frontend.rule: "PathPrefix:/commonui-bs3"
+        traefik.backend: "commonui-sample"
+        traefik.port: "80"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+
+  pgdbimage: 
+    image: postgres:9.3
+    env_file: ./env/.envimage
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+    #      - node.hostname == worker2
+    volumes:
+      - db_data_imageservice:/var/lib/postgresql/data
+    networks:
+      - traefik-net
+#      - backend
+  elasticsearch:
+    environment:
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.0.0"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - traefik-net
+#      - backend
+
+  image-sample:
+    image: vertigoala/image-service:latest
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+    #      - node.hostname == worker1
+      labels:
+        traefik.frontend.rule: "PathPrefix:/images"
+        traefik.backend: "image-sample"
+        traefik.port: "8080"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+#      - backend
+    depends_on:
+      - pgdbimage
+      - commonui-sample
+    env_file: ./env/.envimage
+    configs:
+      - source: images-config
+        target: /data/image-service/config/image-service-config.properties
+      - source: tomcat-logging
+        target: /usr/local/tomcat/conf/logging.properties
+    volumes:
+      - data_images:/data/image-service-store
+      - data_elastic:/data/image-service/elasticsearch
+
+  image-store:
+    image: nginx:alpine
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+    #      - node.hostname == worker1
+      labels:
+        traefik.frontend.rule: "PathPrefix:/store"
+        traefik.backend: "image-store"
+        traefik.port: "80"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+    volumes:
+      - type: volume
+        source: data_images
+        target: /usr/share/nginx/html
+        volume:
+          nocopy: true
+
+  cassandradb:
+    image: cassandra:3.11.4
+    configs:
+      - source: cassandra-schema
+        target: /docker-entrypoint-initdb.d/cassandra3-schema.cql
+      - source: cassandra-entrypoint
+        target: /cassandra-entrypoint.sh
+    entrypoint: 
+      - bash
+      - -c
+      - source /cassandra-entrypoint.sh
+
+configs:
+  images-config:
+    file: ./config/images-config.properties
+  tomcat-logging:
+    file: ./config/logging.properties
+  cassandra-schema:
+    file: ./config/cassandra3_schema.txt
+  cassandra-entrypoint:
+    file: ./scripts/cassandra-entrypoint.sh
+volumes:
+  db_data_imageservice:
+  data_images:
+  data_elastic:
+networks:
+  traefik-net:
+    driver: overlay
+#  backend:
+#    driver: overlay
