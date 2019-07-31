@@ -2,23 +2,23 @@ version: "3.7"
 
 services:
 
-  traefik:
-    image: traefik:latest
-    ports:
-      - 80:80
-      - 8080:8080
-    command: traefik --docker --docker.swarmMode --docker.watch --docker.network=traefik-net --api 
-    #  --docker.trace --accessLog -l DEBUG 
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-    networks:
-      - traefik-net
-    volumes:
-      - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
+  # traefik:
+  #   image: traefik:latest
+  #   ports:
+  #     - 80:80
+  #     - 8080:8080
+  #   command: traefik --docker --docker.swarmMode --docker.watch --docker.network=traefik-net --api 
+  #   #  --docker.trace --accessLog -l DEBUG 
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #   networks:
+  #     - traefik-net
+  #   volumes:
+  #     - type: bind
+  #       source: /var/run/docker.sock
+  #       target: /var/run/docker.sock
 
   commonui-sample:
     image: vertigoala/commonui-sample:latest
@@ -109,12 +109,38 @@ services:
         volume:
           nocopy: true
 
+  biocache-store:
+    image: vertigoala/biocache-store
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      labels:
+        traefik.frontend.rule: "PathPrefixStrip:/biocache"
+        traefik.backend: "biocache-store"
+        traefik.port: "7681"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+      - cassandra
+    environment:
+#      - BIOPWD=biocache
+#      - PUBLICKEY
+      - USETTYD=true
+    ports:
+#      - "2022:22"
+      - "7681:7681"
+    depends_on:
+      - cassandradb
+
   cassandradb:
     image: cassandra:3.11.4
     deploy:
       placement:
         constraints:
           - node.role == worker
+    networks:
+      - cassandra
     configs:
       - source: cassandra-schema
         target: /docker-entrypoint-initdb.d/cassandra3-schema.cql
@@ -139,7 +165,10 @@ volumes:
   data_images:
   data_elastic:
 networks:
+  cassandra:
   traefik-net:
-    driver: overlay
+    external: true
+    name: traefik_traefik-net
+#    driver: overlay
 #  backend:
 #    driver: overlay

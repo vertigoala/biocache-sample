@@ -1,8 +1,6 @@
 #!/bin/sh
 #
-# WHEN USING PLAY-WITH-DOCKER:
-# SERVERNAME must point to manager instance in the form ipXXX-XXX-XXX-XXX-YYYYYYYYYYYYYY.direct.labs.play-with-docker.com
-# (replace the "@" for a ".")
+# SERVERNAME must point to a manager instance
 #
 #export DOCKER_HOST=tcp://$SERVERNAME:2375
 export DOCKER_HOST=ssh://ubuntu@$SERVERNAME
