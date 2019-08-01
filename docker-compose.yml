@@ -1,3 +1,6 @@
+#
+# This is a docker stack compose for biocache and its dependencies
+#
 version: "3.7"
 
 services:
@@ -41,12 +44,11 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker2
     volumes:
       - db_data_imageservice:/var/lib/postgresql/data
     networks:
-      - traefik-net
-#      - backend
+      - backend
+
   elasticsearch:
     environment:
       - cluster.name=docker-cluster
@@ -57,8 +59,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - traefik-net
-#      - backend
+      - backend
 
   image-sample:
     image: vertigoala/image-service:latest
@@ -66,7 +67,6 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker1
       labels:
         traefik.frontend.rule: "PathPrefix:/images"
         traefik.backend: "image-sample"
@@ -74,7 +74,7 @@ services:
         traefik.enable: "true"
     networks:
       - traefik-net
-#      - backend
+      - backend
     depends_on:
       - pgdbimage
       - commonui-sample
@@ -94,7 +94,6 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker1
       labels:
         traefik.frontend.rule: "PathPrefix:/store"
         traefik.backend: "image-store"
@@ -166,6 +165,7 @@ volumes:
   data_elastic:
 networks:
   cassandra:
+  backend:
   traefik-net:
     external: true
     name: traefik_traefik-net
