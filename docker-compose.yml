@@ -41,12 +41,11 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker2
     volumes:
       - db_data_imageservice:/var/lib/postgresql/data
     networks:
-      - traefik-net
-#      - backend
+      - backend
+
   elasticsearch:
     environment:
       - cluster.name=docker-cluster
@@ -57,8 +56,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - traefik-net
-#      - backend
+      - backend
 
   image-sample:
     image: vertigoala/image-service:latest
@@ -66,7 +64,7 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker1
+          - node.labels.alanode == worker0
       labels:
         traefik.frontend.rule: "PathPrefix:/images"
         traefik.backend: "image-sample"
@@ -74,7 +72,7 @@ services:
         traefik.enable: "true"
     networks:
       - traefik-net
-#      - backend
+      - backend
     depends_on:
       - pgdbimage
       - commonui-sample
@@ -94,7 +92,7 @@ services:
       placement:
         constraints:
           - node.role == worker
-    #      - node.hostname == worker1
+          - node.labels.alanode == worker0
       labels:
         traefik.frontend.rule: "PathPrefix:/store"
         traefik.backend: "image-store"
@@ -108,6 +106,37 @@ services:
         target: /usr/share/nginx/html
         volume:
           nocopy: true
+
+  # ALA-COLLECTORY
+  collectory-db:
+    image: mysql:5.7
+    env_file: ./env/.envcollectory
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+    networks:
+      - backend
+    volumes:
+      - db_data_collectory:/var/lib/mysql
+
+  collectory:
+    image: vertigoala/ala-collectory
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      labels:
+        traefik.frontend.rule: "PathPrefix:/collectory"
+        traefik.backend: "collectory"
+        traefik.port: "8080"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+      - backend
+    depends_on:
+      - mysqldb
+    env_file: ./env/.envcollectory
 
   biocache-store:
     image: vertigoala/biocache-store
@@ -127,9 +156,9 @@ services:
 #      - BIOPWD=biocache
 #      - PUBLICKEY
       - USETTYD=true
-    ports:
+#    ports:
 #      - "2022:22"
-      - "7681:7681"
+#      - "7681:7681"
     depends_on:
       - cassandradb
 
@@ -164,11 +193,11 @@ volumes:
   db_data_imageservice:
   data_images:
   data_elastic:
+  db_data_collectory:
 networks:
   cassandra:
   traefik-net:
     external: true
     name: traefik_traefik-net
-#    driver: overlay
-#  backend:
-#    driver: overlay
+  backend:
+    driver: overlay
