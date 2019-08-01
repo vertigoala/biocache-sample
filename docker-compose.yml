@@ -1,5 +1,7 @@
 #
 # This is a docker stack compose for biocache and its dependencies
+# We are pinning services to nodes in order to keep using local volumes until
+# we give up being lazy and use volume drivers accordingly.
 #
 version: "3.7"
 
@@ -44,6 +46,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker0
     volumes:
       - db_data_imageservice:/var/lib/postgresql/data
     networks:
@@ -58,6 +61,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker1
     networks:
       - backend
 
@@ -118,6 +122,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker1
     networks:
       - backend
     volumes:
@@ -129,11 +134,17 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker1
       labels:
         traefik.frontend.rule: "PathPrefix:/collectory"
         traefik.backend: "collectory"
         traefik.port: "8080"
         traefik.enable: "true"
+    configs:
+      - source: collectory-config
+        target: /data/ala-collectory/config/ala-collectory-config.properties
+      - source: tomcat-logging
+        target: /usr/local/tomcat/conf/logging.properties
     networks:
       - traefik-net
       - backend
@@ -147,6 +158,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker2
       labels:
         traefik.frontend.rule: "PathPrefixStrip:/biocache"
         traefik.backend: "biocache-store"
@@ -171,6 +183,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker1
     networks:
       - cassandra
     configs:
@@ -186,6 +199,8 @@ services:
 configs:
   images-config:
     file: ./config/images-config.properties
+  collectory-config:
+    file: ./config/ala-collectory-config.properties
   tomcat-logging:
     file: ./config/logging.properties
   cassandra-schema:
