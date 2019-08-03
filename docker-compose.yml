@@ -167,6 +167,7 @@ services:
     networks:
       - traefik-net
       - cassandra
+      - solr
     environment:
 #      - BIOPWD=biocache
 #      - PUBLICKEY
@@ -174,6 +175,9 @@ services:
 #    ports:
 #      - "2022:22"
 #      - "7681:7681"
+    configs:
+      - source: biocache-config
+        target: /data/biocache/config/biocache-config.properties
     depends_on:
       - cassandradb
 
@@ -196,7 +200,50 @@ services:
       - -c
       - source /cassandra-entrypoint.sh
 
+  solr-1:
+    image: vertigoala/solr-cloud
+    environment:
+      ZK_HOST: zoo
+      SOLR_HOST: solr-1
+      SOLR_NUM_SHARDS: 1
+#      SOLR_HEAP: 64g
+    networks:
+      - solr
+      - traefik-net
+    volumes:
+      - data_solr-1:/data/solr
+    deploy:
+      labels:
+        traefik.frontend.rule: "Host:solr.example.com"
+        traefik.backend: "solr-1"
+        traefik.port: "8983"
+        traefik.enable: "true"
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.alanode == worker2
+#    ports:
+#      - "8983:8983"
+
+  zoo:
+    image: zookeeper
+    environment:
+      ZOO_LOG4J_PROP: "DEBUG,CONSOLE"
+    networks:
+      - solr
+    volumes:
+      - data_zoo:/conf
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.alanode == worker2
+#    ports:
+#      - "2181:2181"
+
 configs:
+  biocache-config:
+    file: ./config/biocache-config.properties
   images-config:
     file: ./config/images-config.properties
   collectory-config:
@@ -212,8 +259,13 @@ volumes:
   data_images:
   data_elastic:
   db_data_collectory:
+  data_solr-1:
+  data_zoo:
 networks:
   cassandra:
+    driver: overlay
+  solr:
+    driver: overlay
   traefik-net:
     external: true
     name: traefik_traefik-net
