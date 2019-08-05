@@ -1,3 +1,5 @@
 config/biocache-config.properties
 config/images-config.properties
 config/ala-collectory-config.properties
+config/apikey-config.properties
+

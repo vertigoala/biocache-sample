@@ -241,7 +241,48 @@ services:
 #    ports:
 #      - "2181:2181"
 
+  # APIKEY
+  mysqlapidb:
+    image: mysql:5.7
+    env_file: ./env/.envapi
+    networks:
+      - backend
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+          - node.labels.alanode == manager0
+    configs:
+      - source: apikey-schema
+        target: /docker-entrypoint-initdb.d/apikey-schema.sql
+    volumes:
+      - db_data_apikey:/var/lib/mysql
+  apikey:
+    image: vertigoala/apikey
+    configs:
+      - source: apikey-config
+        target: /data/apikey/config/apikey-config.properties
+    networks:
+      - backend
+      - traefik-net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+          - node.labels.alanode == manager0
+      labels:
+        traefik.frontend.rule: "PathPrefix:/apikey"
+        traefik.backend: "apikey"
+        traefik.port: "8080"
+        traefik.enable: "true"
+#    ports:
+#      - 8080:8080
+
 configs:
+  apikey-schema:
+    file: ./config/apikey_schema.sql
+  apikey-config:
+    file: ./config/apikey-config.properties
   biocache-config:
     file: ./config/biocache-config.properties
   images-config:
@@ -251,10 +292,11 @@ configs:
   tomcat-logging:
     file: ./config/logging.properties
   cassandra-schema:
-    file: ./config/cassandra3_schema.txt
+    file: ./config/cassandra3-schema.txt
   cassandra-entrypoint:
     file: ./scripts/cassandra-entrypoint.sh
 volumes:
+  db_data_apikey:
   db_data_imageservice:
   data_images:
   data_elastic:
