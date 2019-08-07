@@ -73,10 +73,14 @@ services:
           - node.role == worker
           - node.labels.alanode == worker0
       labels:
-        traefik.frontend.rule: "PathPrefix:/images"
-        traefik.backend: "image-sample"
-        traefik.port: "8080"
-        traefik.enable: "true"
+        traefik.img.frontend.rule: "PathPrefix:/images"
+        traefik.img.backend: "image-sample"
+        traefik.img.port: "8080"
+        traefik.img.enable: "true"
+#        traefik.swg.frontend.rule: "PathPrefix:/webjars; ReplacePathRegex: ^/webjars /images/webjars"
+#        traefik.swg.backend: "image-sample"
+#        traefik.swg.port: "8080"
+#        traefik.swg.enable: "true"
     networks:
       - traefik-net
       - backend
@@ -277,6 +281,17 @@ services:
         traefik.enable: "true"
 #    ports:
 #      - 8080:8080
+
+  # image-proxy:
+  #   image: vertigoala/image-proxy
+  #   deploy:
+  #     labels:
+  #       traefik.frontend.rule: "PathPrefixStrip:/proxy"
+  #       traefik.backend: "image-proxy"
+  #       traefik.port: "3000"
+  #       traefik.enable: "true"
+  #   networks:
+  #     - traefik-net
 
 configs:
   apikey-schema:
