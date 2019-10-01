@@ -25,19 +25,19 @@ services:
   #       source: /var/run/docker.sock
   #       target: /var/run/docker.sock
 
-  commonui-sample:
-    image: vertigoala/commonui-sample:latest
-    deploy:
-      placement:
-        constraints:
-          - node.role == worker
-      labels:
-        traefik.frontend.rule: "PathPrefix:/commonui-bs3"
-        traefik.backend: "commonui-sample"
-        traefik.port: "80"
-        traefik.enable: "true"
-    networks:
-      - traefik-net
+  # commonui-sample:
+  #   image: vertigoala/commonui-sample:latest
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == worker
+  #     labels:
+  #       traefik.frontend.rule: "PathPrefix:/commonui-bs3"
+  #       traefik.backend: "commonui-sample"
+  #       traefik.port: "80"
+  #       traefik.enable: "true"
+  #   networks:
+  #     - traefik-net
 
   pgdbimage: 
     image: postgres:9.3
@@ -84,9 +84,6 @@ services:
     networks:
       - traefik-net
       - backend
-    depends_on:
-      - pgdbimage
-      - commonui-sample
     env_file: ./env/.envimage
     configs:
       - source: images-config
@@ -152,8 +149,6 @@ services:
     networks:
       - traefik-net
       - backend
-    depends_on:
-      - mysqldb
     env_file: ./env/.envcollectory
 
   biocache-store:
@@ -182,8 +177,6 @@ services:
     configs:
       - source: biocache-config
         target: /data/biocache/config/biocache-config.properties
-    depends_on:
-      - cassandradb
 
   cassandradb:
     image: cassandra:3.11.4
@@ -246,39 +239,39 @@ services:
 #      - "2181:2181"
 
   # APIKEY
-  mysqlapidb:
-    image: mysql:5.7
-    env_file: ./env/.envapi
-    networks:
-      - backend
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-          - node.labels.alanode == manager0
-    configs:
-      - source: apikey-schema
-        target: /docker-entrypoint-initdb.d/apikey-schema.sql
-    volumes:
-      - db_data_apikey:/var/lib/mysql
-  apikey:
-    image: vertigoala/apikey
-    configs:
-      - source: apikey-config
-        target: /data/apikey/config/apikey-config.properties
-    networks:
-      - backend
-      - traefik-net
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-          - node.labels.alanode == manager0
-      labels:
-        traefik.frontend.rule: "PathPrefix:/apikey"
-        traefik.backend: "apikey"
-        traefik.port: "8080"
-        traefik.enable: "true"
+  # mysqlapidb:
+  #   image: mysql:5.7
+  #   env_file: ./env/.envapi
+  #   networks:
+  #     - backend
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #         - node.labels.alanode == manager0
+  #   configs:
+  #     - source: apikey-schema
+  #       target: /docker-entrypoint-initdb.d/apikey-schema.sql
+  #   volumes:
+  #     - db_data_apikey:/var/lib/mysql
+  # apikey:
+  #   image: vertigoala/apikey
+  #   configs:
+  #     - source: apikey-config
+  #       target: /data/apikey/config/apikey-config.properties
+  #   networks:
+  #     - backend
+  #     - traefik-net
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #         - node.labels.alanode == manager0
+  #     labels:
+  #       traefik.frontend.rule: "PathPrefix:/apikey"
+  #       traefik.backend: "apikey"
+  #       traefik.port: "8080"
+  #       traefik.enable: "true"
 #    ports:
 #      - 8080:8080
 
